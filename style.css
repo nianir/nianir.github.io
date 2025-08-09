@@ -1,0 +1,14 @@
+#molecule-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: -1;
+    background: #e0f7fa;
+}
+
+.content-wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    min-height: 100vh;
+}
