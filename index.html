@@ -166,6 +166,24 @@
       .hero{ grid-template-columns: 1.1fr 1fr; }
       .sections{ grid-template-columns: 1.2fr 1fr; }
     }
+    /* --- Optional helpers for theory layout --- */
+.theory h4 { margin:10px 0 6px; font-size:15px; letter-spacing:.2px; }
+.formulas { display:grid; gap:8px; }
+.formula{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 14px; line-height:1.5;
+  background: rgba(255,255,255,.04);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:10px; padding:8px 10px;
+  overflow:auto;
+}
+.kapsle{ display:inline-block; padding:2px 8px; border:1px solid rgba(255,255,255,.12); border-radius:999px; font-size:12px; color:var(--muted); }
+.example{
+  background: rgba(255,255,255,.03);
+  border:1px dashed rgba(255,255,255,.15);
+  border-radius:10px; padding:10px 12px; margin-top:8px;
+}
+.note-small{ color: var(--muted); font-size: 12px; }
   </style>
 </head>
 <body>
@@ -213,218 +231,265 @@ aplikaci stavové rovnice ideálního plynu). Прогресс остается 
   </div>
 
   <noscript>Разрешите JavaScript для работы сайта.</noscript>
+<script type="module">
+  /* -------------------- Background -------------------- */
+  import initMoleculeBackground from './molecule-bg.js';
+  const bgCanvas = document.getElementById('molecule-bg');
+  const setCanvasSize = () => {
+    bgCanvas.style.width = '100%';
+    bgCanvas.style.height = '100%';
+  };
+  setCanvasSize();
+  window.addEventListener('resize', setCanvasSize);
+  initMoleculeBackground(bgCanvas, { count: 70 });
 
-  <!-- App logic -->
-  <script type="module">
-    // --- Background animation (uses your external module) ---
-    import initMoleculeBackground from './molecule-bg.js';
-    const bgCanvas = document.getElementById('molecule-bg');
-    const setCanvasSize = () => {
-      bgCanvas.style.width = '100%';
-      bgCanvas.style.height = '100%';
-    };
-    setCanvasSize();
-    window.addEventListener('resize', setCanvasSize);
-    // Call your background init with a sensible default; adjust inside molecule-bg.js if needed
-    initMoleculeBackground(bgCanvas, { count: 70 });
+  /* -------------------- Data & helpers -------------------- */
+  const TOTAL = 12;
+  const chapters = Array.from({length: TOTAL}, (_,i)=>({
+    id: i+1,
+    title: `Kapitola ${i+1}`,
+    blurb: "Krátký popis kapitoly (doplníte).",
+  }));
+  // Custom title for chapter 1
+  chapters[0].title = "Kapitola 1 — Složky, směsi a složení sloučenin";
 
-    // --- Data & helpers ---
-    const TOTAL = 12;
-    const chapters = Array.from({length: TOTAL}, (_,i)=>({
-      id: i+1,
-      title: `Kapitola ${i+1}`,
-      blurb: "Krátký popis kapitoly (doplníte).",
-    }));
+  // Content registry: put per‑chapter theory + quiz here
+  const CHAPTER_CONTENT = {
+    1: {
+      title: "Složky, směsi a složení sloučenin",
+      theory: `
+        <div class="theory">
+          <div class="kapsle">Kapitola 1 — shrnutí</div>
+          <p>Tato kapitola pokrývá základní pojmy: složky (komponenty), druhy směsí a popisy složení pomocí zlomků a koncentrací. Níže je přehled vzorců jako <em>šablona</em> — čísla a dosazení si doplníš podle potřeby.</p>
 
-    const $ = (sel, root=document) => root.querySelector(sel);
-    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-    const storage = {
-      key: 'chem-bilan-progress-v1',
-      read(){
-        try { return JSON.parse(localStorage.getItem(this.key)) || {done:[], scores:{}}; }
-        catch { return {done:[], scores:{}}; }
-      },
-      write(data){ localStorage.setItem(this.key, JSON.stringify(data)); }
-    };
-
-    function percentDone(){
-      const {done} = storage.read();
-      const pct = Math.round((done.length / TOTAL) * 100);
-      $('#progressBar').style.width = pct + '%';
-      $('#progressPct').textContent = pct + '%';
-      const progress = $('.progress');
-      progress.setAttribute('aria-valuenow', String(pct));
-      return pct;
-    }
-
-    // --- Render Chapters grid on Home ---
-    function renderHome(){
-      const grid = $('#chaptersGrid');
-      grid.innerHTML = '';
-      const state = storage.read();
-      for(const ch of chapters){
-        const item = document.createElement('article');
-        item.className = 'chapter';
-        const done = state.done.includes(ch.id);
-        const score = state.scores[ch.id] ?? null;
-        item.innerHTML = `
-          <h3>${ch.title}</h3>
-          <p>${ch.blurb}</p>
-          <div class="badges">
-            <span class="badge ${done?'ok':''}">${done?'Hotovo':'Neukončeno'}</span>
-            <span class="badge">${score!=null ? ('Skóre: '+score+'%') : 'Bez testu'}</span>
-            <a class="cta" href="#/kapitola/${ch.id}" aria-label="Otevřít ${ch.title}">Otevřít →</a>
+          <h4>Zlomky (popis složení)</h4>
+          <div class="formulas">
+            <div class="formula">Hmotnostní zlomek: <strong>w<sub>i</sub> = m<sub>i</sub> / m</strong></div>
+            <div class="formula">Molární zlomek: <strong>x<sub>i</sub> = n<sub>i</sub> / n</strong></div>
+            <div class="formula">Objemový zlomek: <strong>φ<sub>i</sub> = V<sub>i</sub> / V</strong></div>
           </div>
-        `;
-        grid.appendChild(item);
-      }
-      percentDone();
+
+          <h4>Koncentrace</h4>
+          <div class="formulas">
+            <div class="formula">Molární koncentrace: <strong>c<sub>i</sub> = n<sub>i</sub> / V<sub>roztok</sub></strong></div>
+            <div class="formula">Hmotnostní koncentrace: <strong>c<sub>i</sub> = m<sub>i</sub> / V<sub>roztok</sub></strong></div>
+            <div class="formula">Vztah k hustotě a molární hmotnosti: <strong>ρ<sub>i</sub> = c<sub>i</sub> · M<sub>i</sub></strong></div>
+          </div>
+
+          <h4>Hustota roztoku</h4>
+          <div class="formulas">
+            <div class="formula"><strong>ρ = m<sub>roztok</sub> / V<sub>roztok</sub></strong></div>
+          </div>
+
+          <h4>Převody (šablony)</h4>
+          <div class="formulas">
+            <div class="formula">z molárních zlomků na hmotnostní: <strong>w<sub>i</sub> = x<sub>i</sub> M<sub>i</sub> / &Sum;<sub>j</sub>(x<sub>j</sub> M<sub>j</sub>)</strong></div>
+            <div class="formula">pro ideální plyny/ředké roztoky: <strong>x<sub>i</sub> ≈ φ<sub>i</sub></strong></div>
+            <div class="formula">z hmotnostního zlomku na koncentraci: <strong>w<sub>i</sub> = (c<sub>i</sub> M<sub>i</sub>) / ρ</strong></div>
+            <div class="note-small">Pozn.: Přesné vztahy a předpoklady si uprav podle látky/soustavy.</div>
+          </div>
+
+          <div class="example">
+            <strong>Příklad – šablona</strong>
+            <ol>
+              <li>Složení roztoku v hmotnostních procentech — vypočti <span class="formula">w<sub>i</sub></span>.</li>
+              <li>Výpočet <span class="formula">c</span> a <span class="formula">w</span> z hmotnosti a hustoty — použij <span class="formula">n=m/M</span>, <span class="formula">c=n/V</span>, <span class="formula">ρ=m/V</span>.</li>
+              <li>Převody mezi <span class="formula">x, w, φ</span>.</li>
+            </ol>
+            <div class="note-small">Sem si můžeš dopsat konkrétní číselné příklady (např. „Př. 2.11“, „Př. 2.16“, „Př. 2.18“).</div>
+          </div>
+        </div>
+      `,
+      quiz: [
+        { q: "Jak je definován hmotnostní zlomek složky i?", a: ["wᵢ = mᵢ / m", "wᵢ = nᵢ / n", "wᵢ = Vᵢ / V"], correct: 0 },
+        { q: "Který vztah platí pro molární koncentraci?", a: ["cᵢ = mᵢ / V", "cᵢ = nᵢ / V", "cᵢ = ρ / Mᵢ"], correct: 1 }
+      ]
     }
+  };
 
-    // --- Chapter View (dummy content + playable test) ---
-    function chapterTemplate(id){
-      // Dummy quiz (replace questions/answers later)
-      const quiz = [
-        {
-          q: "Kolik je látkové množství 18 g vody H₂O? (M = 18 g·mol⁻¹)",
-          a: ["1 mol", "0,5 mol", "18 mol"],
-          correct: 0
-        },
-        {
-          q: "Vyberte správně vyčíslenou rovnici spalování metanu:",
-          a: [
-            "CH₄ + O₂ → CO₂ + 2 H₂O",
-            "CH₄ + 2 O₂ → CO₂ + 2 H₂O",
-            "2 CH₄ + O₂ → 2 CO₂ + 2 H₂O"
-          ],
-          correct: 1
-        }
-      ];
-      return `
-        <header>
-          <nav class="crumbs">
-            <a href="#/" aria-label="Zpět na úvod">← Zpět</a>
-            <span> / </span>
-            <span>${chapters[id-1].title}</span>
-          </nav>
-        </header>
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  const storage = {
+    key: 'chem-bilan-progress-v1',
+    read(){
+      try { return JSON.parse(localStorage.getItem(this.key)) || {done:[], scores:{}}; }
+      catch { return {done:[], scores:{}}; }
+    },
+    write(data){ localStorage.setItem(this.key, JSON.stringify(data)); }
+  };
 
-        <h2>${chapters[id-1].title}</h2>
-        <div class="muted">Šablona kapitoly. Nahraďte texty níže vlastní teorií a testem.</div>
+  function percentDone(){
+    const {done} = storage.read();
+    const pct = Math.round((done.length / TOTAL) * 100);
+    $('#progressBar').style.width = pct + '%';
+    $('#progressPct').textContent = pct + '%';
+    $('.progress').setAttribute('aria-valuenow', String(pct));
+    return pct;
+  }
 
-        <div class="sections">
-          <section class="section">
-            <h3>Teorie</h3>
-            <div class="editable" contenteditable="true" role="textbox" aria-label="Prostor pro teorii">
-              <p><em>Sem přidejte teorii k&nbsp;kapitole ${id}…</em></p>
-              <ul>
-                <li>Definice / vzorce</li>
-                <li>Postup výpočtu</li>
-                <li>Příklady</li>
-              </ul>
-            </div>
-            <div class="actions">
-              <button id="markDone">Označit kapitolu jako hotovou</button>
-              <span class="note">Pozn.: „Hotovo“ můžete kdykoliv změnit opětovným kliknutím.</span>
-            </div>
-          </section>
-
-          <section class="section">
-            <h3>Test (ukázka)</h3>
-            <form class="quiz" id="quizForm" autocomplete="off">
-              ${quiz.map((q,i)=>`
-                <fieldset class="q">
-                  <legend>${i+1}. ${q.q}</legend>
-                  ${q.a.map((opt,j)=>`
-                    <label>
-                      <input type="radio" name="q${i}" value="${j}" required>
-                      <span>${opt}</span>
-                    </label>
-                  `).join('')}
-                </fieldset>
-              `).join('')}
-              <div class="actions">
-                <button type="reset">Reset</button>
-                <button type="button" class="primary" id="gradeBtn">Vyhodnotit test</button>
-                <span class="note">Výsledek se uloží do postupu.</span>
-              </div>
-            </form>
-            <div id="result" class="muted" style="margin-top:8px;"></div>
-          </section>
+  /* -------------------- Home grid -------------------- */
+  function renderHome(){
+    const grid = $('#chaptersGrid');
+    grid.innerHTML = '';
+    const state = storage.read();
+    for(const ch of chapters){
+      const item = document.createElement('article');
+      item.className = 'chapter';
+      const done = state.done.includes(ch.id);
+      const score = state.scores[ch.id] ?? null;
+      item.innerHTML = `
+        <h3>${ch.title}</h3>
+        <p>${ch.blurb}</p>
+        <div class="badges">
+          <span class="badge ${done?'ok':''}">${done?'Hotovo':'Neukončeno'}</span>
+          <span class="badge">${score!=null ? ('Skóre: '+score+'%') : 'Bez testu'}</span>
+          <a class="cta" href="#/kapitola/${ch.id}" aria-label="Otevřít ${ch.title}">Otevřít →</a>
         </div>
       `;
+      grid.appendChild(item);
     }
+    percentDone();
+  }
 
-    // --- Simple Router ---
-    function navigate(){
-      const hash = location.hash || '#/';
-      const view = $('#view');
-      if(hash === '#/' || hash === '#'){
-        view.hidden = true;
-        $('#home').hidden = false;
-        renderHome();
-        return;
-      }
-      const match = hash.match(/^#\/kapitola\/(\d{1,2})$/i);
-      if(match){
-        const id = Number(match[1]);
-        if(id < 1 || id > TOTAL){ location.hash = '#/'; return; }
-        $('#home').hidden = true;
-        view.hidden = false;
-        view.innerHTML = chapterTemplate(id);
-        bindChapterHandlers(id);
-        return;
-      }
-      // fallback
-      location.hash = '#/';
-    }
+  /* -------------------- Chapter view -------------------- */
+  function chapterTemplate(id){
+    const meta = CHAPTER_CONTENT[id];
+    const title = meta?.title || chapters[id-1].title;
 
-    function bindChapterHandlers(id){
-      const state = storage.read();
-      const isDone = state.done.includes(id);
-      const markBtn = $('#markDone');
-      markBtn.textContent = isDone ? 'Odznačit „Hotovo“' : 'Označit kapitolu jako hotovou';
-      markBtn.addEventListener('click', () => {
-        const s = storage.read();
-        const idx = s.done.indexOf(id);
-        if(idx >= 0) s.done.splice(idx,1); else s.done.push(id);
-        storage.write(s);
-        markBtn.textContent = s.done.includes(id) ? 'Odznačit „Hotovo“' : 'Označit kapitolu jako hotovou';
-        percentDone();
-        renderHome(); // update badges when returning home
+    const quiz = meta?.quiz ?? [
+      { q: "Kolik je látkové množství 18 g vody H₂O? (M = 18 g·mol⁻¹)", a: ["1 mol", "0,5 mol", "18 mol"], correct: 0 },
+      { q: "Vyberte správně vyčíslenou rovnici spalování metanu:", a: ["CH₄ + O₂ → CO₂ + 2 H₂O","CH₄ + 2 O₂ → CO₂ + 2 H₂O","2 CH₄ + O₂ → 2 CO₂ + 2 H₂O"], correct: 1 }
+    ];
+
+    return `
+      <header>
+        <nav class="crumbs">
+          <a href="#/" aria-label="Zpět na úvod">← Zpět</a>
+          <span> / </span>
+          <span>${title}</span>
+        </nav>
+      </header>
+
+      <h2>${title}</h2>
+      <div class="muted">Šablona kapitoly. Obsah můžeš upravit níže.</div>
+
+      <div class="sections">
+        <section class="section">
+          <h3>Teorie</h3>
+          ${
+            meta?.theory
+            ? meta.theory
+            : `<div class="editable" contenteditable="true" role="textbox" aria-label="Prostor pro teorii">
+                 <p><em>Sem přidejte teorii k&nbsp;kapitole ${id}…</em></p>
+                 <ul><li>Definice / vzorce</li><li>Postup výpočtu</li><li>Příklady</li></ul>
+               </div>`
+          }
+          <div class="actions">
+            <button id="markDone">Označit kapitolu jako hotovou</button>
+            <span class="note">Pozn.: „Hotovo“ můžete kdykoliv změnit opětovným kliknutím.</span>
+          </div>
+        </section>
+
+        <section class="section">
+          <h3>Test</h3>
+          <form class="quiz" id="quizForm" autocomplete="off">
+            ${quiz.map((q,i)=>`
+              <fieldset class="q">
+                <legend>${i+1}. ${q.q}</legend>
+                ${q.a.map((opt,j)=>`
+                  <label>
+                    <input type="radio" name="q${i}" value="${j}" required>
+                    <span>${opt}</span>
+                  </label>
+                `).join('')}
+              </fieldset>
+            `).join('')}
+            <div class="actions">
+              <button type="reset">Reset</button>
+              <button type="button" class="primary" id="gradeBtn">Vyhodnotit test</button>
+              <span class="note">Výsledek se uloží do postupu.</span>
+            </div>
+          </form>
+          <div id="result" class="muted" style="margin-top:8px;"></div>
+        </section>
+      </div>
+    `;
+  }
+
+  function bindChapterHandlers(id){
+    const state = storage.read();
+    const isDone = state.done.includes(id);
+    const markBtn = $('#markDone');
+    markBtn.textContent = isDone ? 'Odznačit „Hotovo“' : 'Označit kapitolu jako hotovou';
+    markBtn.addEventListener('click', () => {
+      const s = storage.read();
+      const idx = s.done.indexOf(id);
+      if(idx >= 0) s.done.splice(idx,1); else s.done.push(id);
+      storage.write(s);
+      markBtn.textContent = s.done.includes(id) ? 'Odznačit „Hotovo“' : 'Označit kapitolu jako hotovou';
+      percentDone();
+      renderHome();
+    });
+
+    $('#gradeBtn').addEventListener('click', () => {
+      // Grade based on the quiz attached to this chapter
+      const meta = CHAPTER_CONTENT[id];
+      const quiz = meta?.quiz ?? [
+        { q: "", a: [""], correct: 0 },
+        { q: "", a: [""], correct: 0 }
+      ];
+      let correctCount = 0;
+      quiz.forEach((q, i) => {
+        const picked = document.querySelector(`input[name="q${i}"]:checked`);
+        if (picked && Number(picked.value) === q.correct) correctCount++;
       });
-
-      $('#gradeBtn').addEventListener('click', () => {
-        const form = $('#quizForm');
-        const inputs = $$('input[type=radio]:checked', form);
-        // In the dummy we assume 2 questions with correct indexes [0,1] (see quiz above)
-        const correct = [0,1];
-        let score = 0;
-        inputs.forEach((inp, i) => { if(Number(inp.value) === correct[i]) score++; });
-        const percent = Math.round((score / correct.length) * 100);
-        const s = storage.read();
-        s.scores[id] = percent;
-        storage.write(s);
-        $('#result').innerHTML = percent >= 50
+      const percent = Math.round((correctCount / quiz.length) * 100);
+      const s = storage.read();
+      s.scores[id] = percent;
+      storage.write(s);
+      document.getElementById('result').innerHTML =
+        percent >= 50
           ? `<span class="score" style="color:var(--ok)">Výsledek: ${percent}% ✓</span>`
           : `<span class="score" style="color:var(--err)">Výsledek: ${percent}% ✗</span>`;
-        renderHome(); // reflect score on home
-      });
-    }
+      renderHome();
+    });
+  }
 
-    window.addEventListener('hashchange', navigate);
-    // Initial render
-    renderHome(); navigate();
-
-    // --- Service Worker for GitHub Pages ---
-    if ('serviceWorker' in navigator) {
-      const swUrl = new URL('./sw.js', location.href).href;
-      navigator.serviceWorker.register(swUrl, { scope: './' })
-        .then(() => { document.getElementById('installState').textContent = 'Připraveno offline'; })
-        .catch(() => { document.getElementById('installState').textContent = 'Offline nedostupné'; });
-    } else {
-      document.getElementById('installState').textContent = 'Pro offline je potřeba moderní prohlížeč';
+  /* -------------------- Router -------------------- */
+  function navigate(){
+    const hash = location.hash || '#/';
+    const view = $('#view');
+    if(hash === '#/' || hash === '#'){
+      view.hidden = true;
+      $('#home').hidden = false;
+      renderHome();
+      return;
     }
-  </script>
+    const match = hash.match(/^#\/kapitola\/(\d{1,2})$/i);
+    if(match){
+      const id = Number(match[1]);
+      if(id < 1 || id > TOTAL){ location.hash = '#/'; return; }
+      $('#home').hidden = true;
+      view.hidden = false;
+      view.innerHTML = chapterTemplate(id);
+      bindChapterHandlers(id);
+      return;
+    }
+    location.hash = '#/';
+  }
+  window.addEventListener('hashchange', navigate);
+  renderHome(); navigate();
+
+  /* -------------------- Service Worker (GitHub Pages) -------------------- */
+  if ('serviceWorker' in navigator) {
+    const swUrl = new URL('./sw.js', location.href).href;
+    navigator.serviceWorker.register(swUrl, { scope: './' })
+      .then(() => { document.getElementById('installState').textContent = 'Připraveno offline'; })
+      .catch(() => { document.getElementById('installState').textContent = 'Offline nedostupné'; });
+  } else {
+    document.getElementById('installState').textContent = 'Pro offline je potřeba moderní prohlížeč';
+  }
+</script>
+
 </body>
 </html>
