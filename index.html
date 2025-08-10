@@ -232,26 +232,28 @@ aplikaci stavové rovnice ideálního plynu). Прогресс остается 
 
   <noscript>Разрешите JavaScript для работы сайта.</noscript>
 <script type="module">
-  /* -------------------- Background -------------------- */
-  import initMoleculeBackground from './molecule-bg.js';
   const bgCanvas = document.getElementById('molecule-bg');
-  const setCanvasSize = () => {
-    bgCanvas.style.width = '100%';
-    bgCanvas.style.height = '100%';
-  };
-  setCanvasSize();
-  window.addEventListener('resize', setCanvasSize);
-  initMoleculeBackground(bgCanvas, { count: 70 });
+  (async () => {
+    try {
+      const mod = await import('./molecule-bg.js');
+      const init = mod.default || mod.initMoleculeBackground || mod.init || mod.start;
+      if (typeof init === 'function') init(bgCanvas, { count: 70 });
+    } catch (err) {
+      console.warn('molecule-bg.js not loaded — running without background.', err);
+      // If you prefer to hide the empty canvas:
+      // bgCanvas.style.display = 'none';
+    }
+  })();
 
   /* -------------------- Data & helpers -------------------- */
   const TOTAL = 12;
   const chapters = Array.from({length: TOTAL}, (_,i)=>({
     id: i+1,
-    title: `Kapitola ${i+1}`,
-    blurb: "Krátký popis kapitoly (doplníte).",
+    title: `Тема ${i+1}`,
+    blurb: "---Тoto je šablona kapitoly. Obsah můžeš upravit níže.",
   }));
   // Custom title for chapter 1
-  chapters[0].title = "Kapitola 1 — Složky, směsi a složení sloučenin";
+  chapters[0].title = "1. Složky, směsi a složení sloučenin"; 
 
   // Content registry: put per‑chapter theory + quiz here
   const CHAPTER_CONTENT = {
