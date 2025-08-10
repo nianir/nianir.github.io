@@ -250,11 +250,11 @@ aplikaci stavové rovnice ideálního plynu). Прогресс остается 
   const chapters = Array.from({length: TOTAL}, (_,i)=>({
     id: i+1,
     title: `Тема ${i+1}`,
-    blurb: "---Тoto je šablona kapitoly. Obsah můžeš upravit níže.",
+    blurb: "----",
   }));
   // Custom title for chapter 1
   chapters[0].title = "1. Složky, směsi a složení sloučenin"; 
-
+  chapters[0].blurb = "Základní pojmy: složky (komponenty), druhy směsí a popisy složení pomocí zlomků a koncentrací.";
   // Content registry: put per‑chapter theory + quiz here
   const CHAPTER_CONTENT = {
     1: {
