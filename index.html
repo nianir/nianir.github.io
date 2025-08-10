@@ -1,18 +1,430 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Chemické a bilanční výpočty — Kurz</title>
+  <meta name="description" content="Dummy SPA pro 'Chemické a bilanční výpočty' se 12 kapitolami, teorií, testy, ukládáním postupu a offline podporou." />
+  <style>
+    :root{
+      --bg: #0b1020;
+      --panel: #11172b;
+      --panel-2: #0f1530;
+      --text: #e6f0ff;
+      --muted: #9fb3c8;
+      --accent: #00bcd4;
+      --accent-2:#80deea;
+      --ok:#22c55e;
+      --warn:#f59e0b;
+      --err:#ef4444;
+      --radius: 14px;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* Background canvas */
+    #molecule-bg{
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      display:block;
+    }
+    /* Subtle vignette over the canvas for contrast */
+    .vignette{
+      position: fixed; inset:0; z-index:1;
+      background: radial-gradient(120% 120% at 50% 0%, transparent 0 55%, rgba(0,0,0,.35) 85%, rgba(0,0,0,.6) 100%);
+      pointer-events: none;
+    }
+
+    /* App shell */
+    .app{
+      position: relative; z-index:2;
+      max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px;
+    }
+    header{
+      display:flex; gap:16px; align-items:center; justify-content:space-between;
+      margin-bottom: 18px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:14px;
+    }
+    .logo{
+      width: 44px; height:44px; border-radius:12px;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 6px 18px rgba(0,188,212,.35), inset 0 0 30px rgba(255,255,255,.12);
+    }
+    h1{ font-size: clamp(22px, 2.2vw, 28px); margin:0; letter-spacing:.3px; }
+    .sub{ color: var(--muted); font-size: 14px; margin-top: 2px; }
+
+    /* Card */
+    .card{
+      background: linear-gradient(180deg, rgba(17,23,43,.9), rgba(13,18,36,.9));
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+    .hero{
+      padding: 18px;
+      display:grid; grid-template-columns: 1fr; gap:16px;
+    }
+    .hero p{ margin:0; color: var(--muted); line-height: 1.5; }
+
+    /* Progress */
+    .progress-wrap{ display:flex; align-items:center; gap:12px; }
+    .progress{
+      flex:1; height: 10px; background: #0b1329;
+      border-radius: 999px; overflow:hidden; border:1px solid rgba(255,255,255,.06);
+    }
+    .bar{ height:100%; width:0%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); transition: width .4s ease; }
+    .pct{ min-width: 64px; text-align:right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+    /* Chapters grid */
+    .grid{
+      margin-top: 14px; padding: 12px;
+      display:grid; grid-template-columns: repeat(auto-fill, minmax(220px,1fr)); gap:12px;
+    }
+    .chapter{
+      display:flex; flex-direction:column; gap:10px; padding:14px;
+      background: var(--panel-2);
+      border:1px solid rgba(255,255,255,.06);
+      border-radius: 12px;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .chapter:hover{ transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.35); }
+    .chapter h3{ margin: 0 0 4px; font-size: 16px; }
+    .chapter p{ margin:0; color: var(--muted); font-size: 13px; line-height:1.4; }
+    .badges{ display:flex; gap:8px; align-items:center; margin-top:auto; }
+    .badge{
+      font-size:12px; padding:4px 8px; border-radius:999px; border:1px solid rgba(255,255,255,.08); color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+    .badge.ok{ color:#bbf7d0; border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.12); }
+    .cta{
+      margin-left:auto;
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border-radius:10px; border:1px solid rgba(255,255,255,.08);
+      background: rgba(0,188,212,.1); color: var(--text); text-decoration:none; font-weight: 600; font-size: 13px;
+    }
+
+    /* Views */
+    main{ margin-top: 14px; }
+    .view{
+      padding: 16px;
+    }
+    .view header{ margin-bottom: 8px; }
+    .crumbs{ display:flex; gap:10px; align-items:center; color: var(--muted); font-size: 14px; }
+    .crumbs a{ color: var(--accent-2); text-decoration: none; }
+    .view h2{ margin: 6px 0 2px; font-size: 22px; }
+
+    .sections{
+      display:grid; grid-template-columns: 1fr; gap: 12px; margin-top: 8px;
+    }
+    .section{
+      padding: 14px; border:1px solid rgba(255,255,255,.06); border-radius: 12px; background: #0f1530;
+    }
+    .section h3{ margin: 0 0 8px; font-size: 16px; }
+    .muted{ color: var(--muted); }
+    .editable{
+      min-height: 180px; padding: 12px; border-radius: 10px; border:1px dashed rgba(255,255,255,.15);
+      background: rgba(255,255,255,.02);
+    }
+
+    /* Quiz */
+    .quiz{ display:grid; gap:10px; }
+    .q{ padding: 12px; border-radius: 10px; border:1px solid rgba(255,255,255,.06); background:#0e1431; }
+    .q legend{ font-weight: 600; margin-bottom: 6px; }
+    .q label{ display:flex; gap:10px; align-items:center; padding:6px 8px; border-radius:8px; cursor:pointer; }
+    .q label:hover{ background: rgba(255,255,255,.04); }
+    .actions{ display:flex; gap:10px; margin-top: 6px; flex-wrap: wrap; }
+    button{
+      appearance:none; border:1px solid rgba(255,255,255,.1); background: rgba(255,255,255,.05);
+      color:var(--text); padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600;
+    }
+    button.primary{ background: linear-gradient(90deg, var(--accent), var(--accent-2)); border-color: transparent; }
+    .note{ font-size:13px; color: var(--muted); }
+    .score{ font-weight:700; }
+    .pill{ padding:3px 8px; border-radius:999px; font-size:12px; border:1px solid rgba(255,255,255,.12); }
+
+    /* Footer */
+    footer{
+      margin-top: 16px; padding: 16px;
+      color: var(--muted); font-size: 13px; text-align:center;
+    }
+
+    @media (min-width: 880px){
+      .hero{ grid-template-columns: 1.1fr 1fr; }
+      .sections{ grid-template-columns: 1.2fr 1fr; }
+    }
+  </style>
+</head>
 <body>
-<canvas id="molecule-bg"></canvas>
+  <canvas id="molecule-bg" aria-hidden="true"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
 
-<div class="content-wrapper">
-    <nav class="sidebar">
-        <h2>Темы</h2>
-        <ul id="topics-list"></ul>
-    </nav>
+  <div class="app" id="app">
+    <header>
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Chemické a bilanční výpočty</h1>
+          <div class="sub">Třída: 2. ročník • Základy + procvičování • Offline po prvním načtení</div>
+        </div>
+      </div>
+      <div class="pill" id="installState">Připravuje se offline…</div>
+    </header>
 
-    <main class="main-content">
-        <h1>Добро пожаловать в мир химии!</h1>
-        <p>Выберите тему слева, чтобы начать обучение.</p>
-    </main>
-</div>
+    <section id="home" class="card hero" role="region" aria-labelledby="home-title">
+      <div>
+        <h2 id="home-title">Popis kurzu</h2>
+        <p>
+          Dummy verze webu kurzu <em>Chemické a bilanční výpočty</em>. Najdete zde 12 kapitol.
+          Každá kapitola má prostor pro <strong>teorii</strong> (vy ji doplníte) a <strong>test</strong>, který je možné spustit a vyhodnotit.
+          Postup se ukládá do vašeho zařízení.
+        </p>
+        <div class="progress-wrap" style="margin-top:12px">
+          <div class="progress" aria-label="Postup kurzem" aria-valuemin="0" aria-valuemax="100" aria-live="polite">
+            <div class="bar" id="progressBar"></div>
+          </div>
+          <div class="pct" id="progressPct">0%</div>
+        </div>
+      </div>
+      <div class="card" style="padding:12px;">
+        <h3 style="margin:4px 0 10px;">Kapitoly</h3>
+        <div class="grid" id="chaptersGrid" aria-label="Seznam kapitol"></div>
+      </div>
+    </section>
 
-<script src="script.js"></script>
-<script src="molecule-bg.js"></script>
+    <main id="view" class="card view" hidden></main>
+
+    <footer>
+      <span>Jednosouborová SPA • Ukládá se do cache pro offline použití • Vytvořte vlastní obsah kapitol přímo v šablonách níže.</span>
+    </footer>
+  </div>
+
+  <noscript>Pro používání této aplikace povolte JavaScript.</noscript>
+
+  <!-- App logic -->
+  <script type="module">
+    // --- Background animation (uses your external module) ---
+    import initMoleculeBackground from './molecule-bg.js';
+    const bgCanvas = document.getElementById('molecule-bg');
+    const setCanvasSize = () => {
+      bgCanvas.style.width = '100%';
+      bgCanvas.style.height = '100%';
+    };
+    setCanvasSize();
+    window.addEventListener('resize', setCanvasSize);
+    // Call your background init with a sensible default; adjust inside molecule-bg.js if needed
+    initMoleculeBackground(bgCanvas, { count: 70 });
+
+    // --- Data & helpers ---
+    const TOTAL = 12;
+    const chapters = Array.from({length: TOTAL}, (_,i)=>({
+      id: i+1,
+      title: `Kapitola ${i+1}`,
+      blurb: "Krátký popis kapitoly (doplníte).",
+    }));
+
+    const $ = (sel, root=document) => root.querySelector(sel);
+    const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+    const storage = {
+      key: 'chem-bilan-progress-v1',
+      read(){
+        try { return JSON.parse(localStorage.getItem(this.key)) || {done:[], scores:{}}; }
+        catch { return {done:[], scores:{}}; }
+      },
+      write(data){ localStorage.setItem(this.key, JSON.stringify(data)); }
+    };
+
+    function percentDone(){
+      const {done} = storage.read();
+      const pct = Math.round((done.length / TOTAL) * 100);
+      $('#progressBar').style.width = pct + '%';
+      $('#progressPct').textContent = pct + '%';
+      const progress = $('.progress');
+      progress.setAttribute('aria-valuenow', String(pct));
+      return pct;
+    }
+
+    // --- Render Chapters grid on Home ---
+    function renderHome(){
+      const grid = $('#chaptersGrid');
+      grid.innerHTML = '';
+      const state = storage.read();
+      for(const ch of chapters){
+        const item = document.createElement('article');
+        item.className = 'chapter';
+        const done = state.done.includes(ch.id);
+        const score = state.scores[ch.id] ?? null;
+        item.innerHTML = `
+          <h3>${ch.title}</h3>
+          <p>${ch.blurb}</p>
+          <div class="badges">
+            <span class="badge ${done?'ok':''}">${done?'Hotovo':'Neukončeno'}</span>
+            <span class="badge">${score!=null ? ('Skóre: '+score+'%') : 'Bez testu'}</span>
+            <a class="cta" href="#/kapitola/${ch.id}" aria-label="Otevřít ${ch.title}">Otevřít →</a>
+          </div>
+        `;
+        grid.appendChild(item);
+      }
+      percentDone();
+    }
+
+    // --- Chapter View (dummy content + playable test) ---
+    function chapterTemplate(id){
+      // Dummy quiz (replace questions/answers later)
+      const quiz = [
+        {
+          q: "Kolik je látkové množství 18 g vody H₂O? (M = 18 g·mol⁻¹)",
+          a: ["1 mol", "0,5 mol", "18 mol"],
+          correct: 0
+        },
+        {
+          q: "Vyberte správně vyčíslenou rovnici spalování metanu:",
+          a: [
+            "CH₄ + O₂ → CO₂ + 2 H₂O",
+            "CH₄ + 2 O₂ → CO₂ + 2 H₂O",
+            "2 CH₄ + O₂ → 2 CO₂ + 2 H₂O"
+          ],
+          correct: 1
+        }
+      ];
+      return `
+        <header>
+          <nav class="crumbs">
+            <a href="#/" aria-label="Zpět na úvod">← Zpět</a>
+            <span> / </span>
+            <span>${chapters[id-1].title}</span>
+          </nav>
+        </header>
+
+        <h2>${chapters[id-1].title}</h2>
+        <div class="muted">Šablona kapitoly. Nahraďte texty níže vlastní teorií a testem.</div>
+
+        <div class="sections">
+          <section class="section">
+            <h3>Teorie</h3>
+            <div class="editable" contenteditable="true" role="textbox" aria-label="Prostor pro teorii">
+              <p><em>Sem přidejte teorii k&nbsp;kapitole ${id}…</em></p>
+              <ul>
+                <li>Definice / vzorce</li>
+                <li>Postup výpočtu</li>
+                <li>Příklady</li>
+              </ul>
+            </div>
+            <div class="actions">
+              <button id="markDone">Označit kapitolu jako hotovou</button>
+              <span class="note">Pozn.: „Hotovo“ můžete kdykoliv změnit opětovným kliknutím.</span>
+            </div>
+          </section>
+
+          <section class="section">
+            <h3>Test (ukázka)</h3>
+            <form class="quiz" id="quizForm" autocomplete="off">
+              ${quiz.map((q,i)=>`
+                <fieldset class="q">
+                  <legend>${i+1}. ${q.q}</legend>
+                  ${q.a.map((opt,j)=>`
+                    <label>
+                      <input type="radio" name="q${i}" value="${j}" required>
+                      <span>${opt}</span>
+                    </label>
+                  `).join('')}
+                </fieldset>
+              `).join('')}
+              <div class="actions">
+                <button type="reset">Reset</button>
+                <button type="button" class="primary" id="gradeBtn">Vyhodnotit test</button>
+                <span class="note">Výsledek se uloží do postupu.</span>
+              </div>
+            </form>
+            <div id="result" class="muted" style="margin-top:8px;"></div>
+          </section>
+        </div>
+      `;
+    }
+
+    // --- Simple Router ---
+    function navigate(){
+      const hash = location.hash || '#/';
+      const view = $('#view');
+      if(hash === '#/' || hash === '#'){
+        view.hidden = true;
+        $('#home').hidden = false;
+        renderHome();
+        return;
+      }
+      const match = hash.match(/^#\/kapitola\/(\d{1,2})$/i);
+      if(match){
+        const id = Number(match[1]);
+        if(id < 1 || id > TOTAL){ location.hash = '#/'; return; }
+        $('#home').hidden = true;
+        view.hidden = false;
+        view.innerHTML = chapterTemplate(id);
+        bindChapterHandlers(id);
+        return;
+      }
+      // fallback
+      location.hash = '#/';
+    }
+
+    function bindChapterHandlers(id){
+      const state = storage.read();
+      const isDone = state.done.includes(id);
+      const markBtn = $('#markDone');
+      markBtn.textContent = isDone ? 'Odznačit „Hotovo“' : 'Označit kapitolu jako hotovou';
+      markBtn.addEventListener('click', () => {
+        const s = storage.read();
+        const idx = s.done.indexOf(id);
+        if(idx >= 0) s.done.splice(idx,1); else s.done.push(id);
+        storage.write(s);
+        markBtn.textContent = s.done.includes(id) ? 'Odznačit „Hotovo“' : 'Označit kapitolu jako hotovou';
+        percentDone();
+        renderHome(); // update badges when returning home
+      });
+
+      $('#gradeBtn').addEventListener('click', () => {
+        const form = $('#quizForm');
+        const inputs = $$('input[type=radio]:checked', form);
+        // In the dummy we assume 2 questions with correct indexes [0,1] (see quiz above)
+        const correct = [0,1];
+        let score = 0;
+        inputs.forEach((inp, i) => { if(Number(inp.value) === correct[i]) score++; });
+        const percent = Math.round((score / correct.length) * 100);
+        const s = storage.read();
+        s.scores[id] = percent;
+        storage.write(s);
+        $('#result').innerHTML = percent >= 50
+          ? `<span class="score" style="color:var(--ok)">Výsledek: ${percent}% ✓</span>`
+          : `<span class="score" style="color:var(--err)">Výsledek: ${percent}% ✗</span>`;
+        renderHome(); // reflect score on home
+      });
+    }
+
+    window.addEventListener('hashchange', navigate);
+    // Initial render
+    renderHome(); navigate();
+
+    // --- Service Worker for GitHub Pages ---
+    if ('serviceWorker' in navigator) {
+      const swUrl = new URL('./sw.js', location.href).href;
+      navigator.serviceWorker.register(swUrl, { scope: './' })
+        .then(() => { document.getElementById('installState').textContent = 'Připraveno offline'; })
+        .catch(() => { document.getElementById('installState').textContent = 'Offline nedostupné'; });
+    } else {
+      document.getElementById('installState').textContent = 'Pro offline je potřeba moderní prohlížeč';
+    }
+  </script>
 </body>
+</html>
